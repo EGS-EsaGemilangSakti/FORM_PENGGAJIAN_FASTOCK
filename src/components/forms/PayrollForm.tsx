@@ -90,7 +90,13 @@ function loadPersistedDraft(): PersistedDraft {
   if (typeof window === 'undefined') return {};
   try {
     const raw = window.localStorage.getItem(DRAFT_STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as PersistedDraft) : {};
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as PersistedDraft;
+    const parsedStep = Number(parsed.currentStep);
+    return {
+      ...parsed,
+      currentStep: parsedStep === 1 || parsedStep === 2 || parsedStep === 3 ? parsedStep : 1,
+    };
   } catch {
     return {};
   }
@@ -313,6 +319,10 @@ export function PayrollForm() {
 
   const onSubmit = async (values: PayrollFormValues) => {
     if (submitLock.current) return;
+    if (currentStep !== 3) {
+      toast.error('Selesaikan step saat ini sebelum mengirim data');
+      return;
+    }
     if (!window.confirm('Kirim data penggajian karyawan?')) return;
     submitLock.current = true;
     try {
