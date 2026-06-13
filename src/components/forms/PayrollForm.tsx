@@ -195,6 +195,33 @@ function SummaryItem({ label, value }: { label: string; value: string }) {
   );
 }
 
+function SubmitLoadingOverlay() {
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0f0f0f]/85 px-6 text-center backdrop-blur-sm">
+      <div aria-label="Orange and tan hamster running in a metal wheel" role="img" className="wheel-and-hamster">
+        <div className="wheel"></div>
+        <div className="hamster">
+          <div className="hamster__body">
+            <div className="hamster__head">
+              <div className="hamster__ear"></div>
+              <div className="hamster__eye"></div>
+              <div className="hamster__nose"></div>
+            </div>
+            <div className="hamster__limb hamster__limb--fr"></div>
+            <div className="hamster__limb hamster__limb--fl"></div>
+            <div className="hamster__limb hamster__limb--br"></div>
+            <div className="hamster__limb hamster__limb--bl"></div>
+            <div className="hamster__tail"></div>
+          </div>
+        </div>
+        <div className="spoke"></div>
+      </div>
+      <p className="mt-6 text-base font-semibold tracking-[0.08em] text-[#f2ca50]">MENGIRIM DATA</p>
+      <p className="mt-2 max-w-xs text-sm leading-6 text-[#d0c5af]">Mohon tunggu, data dan dokumen sedang diproses.</p>
+    </div>
+  );
+}
+
 export function PayrollForm() {
   const persistedDraft = useMemo(loadPersistedDraft, []);
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(persistedDraft.currentStep ?? 1);
@@ -255,6 +282,7 @@ export function PayrollForm() {
   const dataAgreement = watch('dataAgreement');
   const summaryValues = watch();
   const canSubmit = accountValidation.status === 'VALID' && dataAgreement && !isSubmitting && !submitMutation.isPending;
+  const isSubmitLoading = isSubmitting || submitMutation.isPending;
 
   useEffect(() => {
     const subscription = watch((values) => savePersistedDraft(currentStep, values));
@@ -385,6 +413,7 @@ export function PayrollForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-10 px-5 pb-28 pt-6 sm:px-8" noValidate>
+      {isSubmitLoading ? <SubmitLoadingOverlay /> : null}
       <input type="text" className="hidden" tabIndex={-1} autoComplete="off" {...register('website')} />
 
       <section className="space-y-8 text-center">
