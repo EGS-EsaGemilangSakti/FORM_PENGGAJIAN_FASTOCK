@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { BANKS } from '../constants/banks';
-import { EMPLOYMENT_STATUSES, OWNERSHIP_STATUSES, PLACEMENTS, POSITIONS } from '../constants/placements';
-import { KTP_MIME_TYPES, MAX_FILE_SIZE, POWER_OF_ATTORNEY_MIME_TYPES } from '../utils/validators';
+import { EMPLOYMENT_STATUSES, GENDERS, MARITAL_STATUSES, OWNERSHIP_STATUSES, PLACEMENTS, POSITIONS, PTKP_OPTIONS, RELIGIONS } from '../constants/placements';
+import { FAMILY_CARD_MIME_TYPES, KTP_MIME_TYPES, MAX_FILE_SIZE, POWER_OF_ATTORNEY_MIME_TYPES } from '../utils/validators';
 
 const fileListSchema = z.custom<FileList>((value) => value instanceof FileList && value.length > 0, {
   message: 'File wajib diunggah',
@@ -32,6 +32,10 @@ export const payrollSchema = z
     birthPlace: z.string().trim().min(1, 'Tempat lahir wajib dipilih dari daftar').regex(/^[A-Za-z ]+$/, 'Tempat lahir wajib dipilih dari daftar'),
     birthPlaceProvince: z.string().min(1, 'Provinsi tempat lahir wajib terisi'),
     birthDate: z.string().refine((value) => Boolean(value) && new Date(value) <= new Date(), 'Tanggal lahir tidak boleh masa depan'),
+    gender: z.enum(GENDERS, { message: 'Gender wajib dipilih' }),
+    maritalStatus: z.enum(MARITAL_STATUSES, { message: 'Status perkawinan wajib dipilih' }),
+    religion: z.enum(RELIGIONS, { message: 'Agama wajib dipilih' }),
+    ptkp: z.enum(PTKP_OPTIONS.map((option) => option.value) as [string, ...string[]], { message: 'PTKP wajib dipilih' }),
     phone: z.string().regex(/^\d{10,15}$/, 'Nomor telepon wajib 10-15 digit'),
     placement: z.enum(PLACEMENTS, { message: 'Penempatan wajib dipilih' }),
     employmentStatus: z.enum(EMPLOYMENT_STATUSES, { message: 'Status karyawan wajib dipilih' }),
@@ -50,6 +54,7 @@ export const payrollSchema = z
     }),
     ownershipStatus: z.enum(OWNERSHIP_STATUSES, { message: 'Status kepemilikan rekening wajib dipilih' }),
     ktpFile: fileListSchema.refine((fileList) => validateFile(fileList, KTP_MIME_TYPES), 'KTP wajib pdf, jpg, jpeg, atau png maksimal 5MB'),
+    familyCardFile: fileListSchema.refine((fileList) => validateFile(fileList, FAMILY_CARD_MIME_TYPES), 'Kartu Keluarga wajib pdf, jpg, jpeg, atau png maksimal 5MB'),
     powerOfAttorneyFile: z.custom<FileList>().optional(),
     dataAgreement: z.literal(true, { errorMap: () => ({ message: 'Pernyataan wajib disetujui' }) }),
     website: z.string().optional(),

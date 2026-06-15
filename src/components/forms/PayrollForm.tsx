@@ -1,10 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowLeft, ArrowRight, BarChart3, BriefcaseBusiness, Check, CloudUpload, Info, Loader2, MapPin, Send, ShieldCheck, WalletCards } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BarChart3, BriefcaseBusiness, Check, CloudUpload, Download, Info, Loader2, MapPin, Send, ShieldCheck, WalletCards } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { BANKS } from '../../constants/banks';
+import { PTKP_OPTIONS } from '../../constants/placements';
+import powerOfAttorneyTemplateUrl from '../../assets/TAMPLATE_SURAT_KUASA.pdf';
 import { useSubmitPayroll } from '../../hooks/useSubmitPayroll';
 import { useValidateBank } from '../../hooks/useValidateBank';
 import { payrollSchema } from '../../schemas/payrollSchema';
@@ -21,15 +23,20 @@ import { BirthDateField } from '../fields/BirthDateField';
 import { BirthPlaceField } from '../fields/BirthPlaceField';
 import { EmailField } from '../fields/EmailField';
 import { EmploymentStatusField } from '../fields/EmploymentStatusField';
+import { FamilyCardUploadField } from '../fields/FamilyCardUploadField';
 import { FirstWorkDateField } from '../fields/FirstWorkDateField';
 import { FullNameField } from '../fields/FullNameField';
+import { GenderField } from '../fields/GenderField';
 import { KtpUploadField } from '../fields/KtpUploadField';
+import { MaritalStatusField } from '../fields/MaritalStatusField';
 import { NikField } from '../fields/NikField';
 import { OwnershipStatusField } from '../fields/OwnershipStatusField';
 import { PhoneField } from '../fields/PhoneField';
 import { PlacementField } from '../fields/PlacementField';
 import { PositionField } from '../fields/PositionField';
 import { PowerOfAttorneyUploadField } from '../fields/PowerOfAttorneyUploadField';
+import { PtkpField } from '../fields/PtkpField';
+import { ReligionField } from '../fields/ReligionField';
 
 const defaultValidation = {
   status: 'UNVALIDATED' as const,
@@ -51,6 +58,10 @@ const stepFields = {
     'birthPlace',
     'birthPlaceProvince',
     'birthDate',
+    'gender',
+    'maritalStatus',
+    'religion',
+    'ptkp',
     'address',
     'addressDetail',
     'provinceCode',
@@ -76,10 +87,10 @@ const stepFields = {
     'ownershipStatus',
     'powerOfAttorneyFile',
   ],
-  3: ['ktpFile', 'dataAgreement'],
+  3: ['ktpFile', 'familyCardFile', 'dataAgreement'],
 } as const;
 
-type PersistedPayrollValues = Partial<Omit<PayrollFormValues, 'ktpFile' | 'powerOfAttorneyFile'>>;
+type PersistedPayrollValues = Partial<Omit<PayrollFormValues, 'ktpFile' | 'familyCardFile' | 'powerOfAttorneyFile'>>;
 
 interface PersistedDraft {
   currentStep?: 1 | 2 | 3;
@@ -106,6 +117,7 @@ function savePersistedDraft(currentStep: number, values: unknown) {
   if (typeof window === 'undefined') return;
   const persistableValues = { ...(values as Record<string, unknown>) };
   delete persistableValues.ktpFile;
+  delete persistableValues.familyCardFile;
   delete persistableValues.powerOfAttorneyFile;
   window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify({ currentStep, values: persistableValues }));
 }
@@ -195,6 +207,10 @@ function SummaryItem({ label, value }: { label: string; value: string }) {
   );
 }
 
+function formatPtkp(value: string): string {
+  return PTKP_OPTIONS.find((option) => option.value === value)?.label || value || '-';
+}
+
 function SubmitLoadingOverlay() {
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0f0f0f]/85 px-6 text-center backdrop-blur-sm">
@@ -259,6 +275,10 @@ export function PayrollForm() {
       birthPlace: '',
       birthPlaceProvince: '',
       birthDate: '',
+      gender: '',
+      maritalStatus: '',
+      religion: '',
+      ptkp: '',
       phone: '',
       placement: '',
       employmentStatus: '',
@@ -360,8 +380,9 @@ export function PayrollForm() {
     submitLock.current = true;
     try {
       const ktp = values.ktpFile.item(0);
+      const familyCard = values.familyCardFile.item(0);
       const powerOfAttorney = values.powerOfAttorneyFile?.item(0) ?? null;
-      if (!ktp || !selectedBank) throw new Error('Data belum lengkap');
+      if (!ktp || !familyCard || !selectedBank) throw new Error('Data belum lengkap');
       const payload = {
         origin: window.location.origin,
         submittedAt: nowIso(),
@@ -385,6 +406,10 @@ export function PayrollForm() {
           birthPlace: values.birthPlace,
           birthPlaceProvince: values.birthPlaceProvince,
           birthDate: toDisplayDate(values.birthDate),
+          gender: values.gender,
+          maritalStatus: values.maritalStatus,
+          religion: values.religion,
+          ptkp: values.ptkp,
           phone: values.phone,
           placement: values.placement,
           employmentStatus: values.employmentStatus,
@@ -399,6 +424,7 @@ export function PayrollForm() {
         },
         files: {
           ktp: await fileToBase64Payload(ktp),
+          familyCard: await fileToBase64Payload(familyCard),
           powerOfAttorney: powerOfAttorney ? await fileToBase64Payload(powerOfAttorney) : null,
         },
       };
@@ -444,6 +470,10 @@ export function PayrollForm() {
             <PhoneField register={register} setValue={setValue} error={errors.phone?.message} />
             <BirthPlaceField setValue={setValue} watch={watch} error={errors.birthPlaceCode?.message || errors.birthPlace?.message || errors.birthPlaceProvince?.message} />
             <BirthDateField register={register} error={errors.birthDate?.message} />
+            <GenderField register={register} error={errors.gender?.message} />
+            <MaritalStatusField register={register} error={errors.maritalStatus?.message} />
+            <ReligionField register={register} error={errors.religion?.message} />
+            <PtkpField register={register} error={errors.ptkp?.message} />
           </StepCard>
 
           <StepCard title="Alamat Domisili" icon={<MapPin className="h-5 w-5 text-[#f2ca50]" />}>
@@ -493,6 +523,11 @@ export function PayrollForm() {
         <div className="space-y-6">
           <StepCard title="Unggah Dokumen" icon={<CloudUpload className="h-5 w-5 text-[#f2ca50]" />}>
             <KtpUploadField register={register} watch={watch} error={errors.ktpFile?.message} />
+            <FamilyCardUploadField register={register} watch={watch} error={errors.familyCardFile?.message} />
+            <a href={powerOfAttorneyTemplateUrl} download className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-[#f2ca50]/30 px-4 text-sm font-semibold text-[#f2ca50] transition hover:border-[#f2ca50] hover:bg-[#f2ca50]/10 md:col-span-2">
+              <Download className="h-4 w-4" />
+              Unduh Template Surat Kuasa
+            </a>
           </StepCard>
 
           <StepCard title="Ringkasan Data" icon={<BarChart3 className="h-5 w-5 text-[#f2ca50]" />}>
@@ -500,6 +535,8 @@ export function PayrollForm() {
               <SummaryItem label="Nama Lengkap" value={summaryValues.fullName} />
               <SummaryItem label="Posisi" value={summaryValues.position} />
               <SummaryItem label="Status Karyawan" value={summaryValues.employmentStatus} />
+              <SummaryItem label="Gender" value={summaryValues.gender} />
+              <SummaryItem label="PTKP" value={formatPtkp(summaryValues.ptkp)} />
             </div>
             <div className="space-y-6 md:col-span-2">
               <SummaryItem label="Email" value={summaryValues.email} />

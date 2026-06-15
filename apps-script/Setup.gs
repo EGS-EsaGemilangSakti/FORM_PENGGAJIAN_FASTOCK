@@ -1,13 +1,99 @@
 function setup() {
   createSpreadsheetHeaders();
-  applyDuplicateNikFormatting();
+  createPlacementSheets();
+  createPositionPlacementSheets();
+  syncPlacementSheetsFromMain();
+  syncPositionPlacementSheetsFromMain();
+  applyDuplicateNikFormattingToPayrollSheets();
   DriveApp.getFolderById(KTP_FOLDER_ID);
   DriveApp.getFolderById(SURAT_KUASA_FOLDER_ID);
-  console.log('Setup berhasil: header spreadsheet, format duplikat NIK, dan folder Drive valid.');
+  DriveApp.getFolderById(KARTU_KELUARGA_FOLDER_ID);
+  console.log('Setup berhasil: header spreadsheet, sinkronisasi sheet penempatan dan posisi penempatan, format duplikat NIK, dan folder Drive valid.');
 }
 
-function applyDuplicateNikFormatting() {
-  const sheet = getSheet(SHEET_NAME);
+function createPlacementSheets() {
+  PLACEMENTS.forEach(function (placement) {
+    const sheet = getSheet(getPlacementSheetName(placement));
+    createSpreadsheetHeadersForSheet(sheet);
+  });
+}
+
+function createPositionPlacementSheets() {
+  POSITIONS.forEach(function (position) {
+    PLACEMENTS.forEach(function (placement) {
+      const sheet = getSheet(getPositionPlacementSheetName(position, placement));
+      createSpreadsheetHeadersForSheet(sheet);
+    });
+  });
+}
+
+function syncPlacementSheetsFromMain() {
+  const mainSheet = getSheet(SHEET_NAME);
+  const lastRow = mainSheet.getLastRow();
+  const rows = lastRow > 1 ? mainSheet.getRange(2, 1, lastRow - 1, HEADERS.length).getValues() : [];
+  const placementColumnIndex = HEADERS.indexOf('Penempatan');
+
+  PLACEMENTS.forEach(function (placement) {
+    const sheetName = getPlacementSheetName(placement);
+    const sheet = getSheet(sheetName);
+    createSpreadsheetHeadersForSheet(sheet);
+
+    if (sheet.getMaxRows() > 1) {
+      sheet.getRange(2, 1, sheet.getMaxRows() - 1, HEADERS.length).clearContent();
+    }
+
+    const placementRows = rows.filter(function (row) {
+      return String(row[placementColumnIndex] || '').trim() === placement;
+    });
+
+    if (placementRows.length > 0) {
+      sheet.getRange(2, 1, placementRows.length, HEADERS.length).setValues(placementRows);
+    }
+  });
+}
+
+function syncPositionPlacementSheetsFromMain() {
+  const mainSheet = getSheet(SHEET_NAME);
+  const lastRow = mainSheet.getLastRow();
+  const rows = lastRow > 1 ? mainSheet.getRange(2, 1, lastRow - 1, HEADERS.length).getValues() : [];
+  const placementColumnIndex = HEADERS.indexOf('Penempatan');
+  const positionColumnIndex = HEADERS.indexOf('Posisi');
+
+  POSITIONS.forEach(function (position) {
+    PLACEMENTS.forEach(function (placement) {
+      const sheetName = getPositionPlacementSheetName(position, placement);
+      const sheet = getSheet(sheetName);
+      createSpreadsheetHeadersForSheet(sheet);
+
+      if (sheet.getMaxRows() > 1) {
+        sheet.getRange(2, 1, sheet.getMaxRows() - 1, HEADERS.length).clearContent();
+      }
+
+      const positionPlacementRows = rows.filter(function (row) {
+        return String(row[positionColumnIndex] || '').trim() === position
+          && String(row[placementColumnIndex] || '').trim() === placement;
+      });
+
+      if (positionPlacementRows.length > 0) {
+        sheet.getRange(2, 1, positionPlacementRows.length, HEADERS.length).setValues(positionPlacementRows);
+      }
+    });
+  });
+}
+
+function applyDuplicateNikFormattingToPayrollSheets() {
+  applyDuplicateNikFormattingToSheet(getSheet(SHEET_NAME));
+  PLACEMENTS.forEach(function (placement) {
+    applyDuplicateNikFormattingToSheet(getSheet(getPlacementSheetName(placement)));
+  });
+  POSITIONS.forEach(function (position) {
+    PLACEMENTS.forEach(function (placement) {
+      applyDuplicateNikFormattingToSheet(getSheet(getPositionPlacementSheetName(position, placement)));
+    });
+  });
+}
+
+function applyDuplicateNikFormattingToSheet(sheet) {
   const dataRange = sheet.getRange(2, 1, Math.max(sheet.getMaxRows() - 1, 1), HEADERS.length);
   const duplicateNikFormula = '=AND($F2<>"",COUNTIF($F:$F,$F2)>1)';
 

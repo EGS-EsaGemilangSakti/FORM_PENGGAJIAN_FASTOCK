@@ -1,21 +1,24 @@
-# link spreadsheet              : https://docs.google.com/spreadsheets/d 1zc_UbQqmy9aCt1CcKZSxRq276DHfrh46Hts36dGDT0c/edit?gid=0#gid=0
-# link folder PAYROLL_UPLOADS   : https://drive.google.com/drive/folders/1NtUNujvqMP-2uJmo8qKGrcunT7L88txQ?hl=ID
-## link folder KTP              : https://drive.google.com/drive/folders/1jhpp1WleiTwsxI0IltAkFylFGtFO-_AO?hl=ID
-## link folder SURAT_KUASA      : https://drive.google.com/drive/folders/1mqqs3jVAooV00rQpnD9OIHT-tI4NvEaA?hl=ID
+# link spreadsheet              : https://docs.google.com/spreadsheets/d/1RfCck0Y3abUbTUFmFzvmJgOB7hFxRmCn8bp5GfXgn5o/edit?gid=0#gid=0
+# link folder PAYROLL_UPLOADS   : https://drive.google.com/drive/folders/1J9zv9Aj-a2VQeafQlz-NGhSGBHa1mlnG?hl=ID
+## link folder KTP              : https://drive.google.com/drive/folders/1BJnMYEp9QnnMuyMQDaTA0BpzdQEt7Uex?hl=ID
+## link folder SURAT_KUASA      : https://drive.google.com/drive/folders/1nhAAkf0gUBxGag3McWxn91YG_e9ktAAC?hl=ID
+## link folder KARTU_KELUARGA   : https://drive.google.com/drive/folders/1KTRvR6vUvI6UNxl6xflWASHCnXs0P06q?hl=ID
 
 # ID yang dipakai Apps Script
 
-SPREADSHEET_ID=1zc_UbQqmy9aCt1CcKZSxRq276DHfrh46Hts36dGDT0c
-PAYROLL_UPLOADS_FOLDER_ID=1NtUNujvqMP-2uJmo8qKGrcunT7L88txQ
-KTP_FOLDER_ID=1jhpp1WleiTwsxI0IltAkFylFGtFO-_AO
-SURAT_KUASA_FOLDER_ID=1mqqs3jVAooV00rQpnD9OIHT-tI4NvEaA
+SPREADSHEET_ID=1RfCck0Y3abUbTUFmFzvmJgOB7hFxRmCn8bp5GfXgn5o
+PAYROLL_UPLOADS_FOLDER_ID=1J9zv9Aj-a2VQeafQlz-NGhSGBHa1mlnG
+KTP_FOLDER_ID=1BJnMYEp9QnnMuyMQDaTA0BpzdQEt7Uex
+SURAT_KUASA_FOLDER_ID=1nhAAkf0gUBxGag3McWxn91YG_e9ktAAC
+KARTU_KELUARGA_FOLDER_ID=1KTRvR6vUvI6UNxl6xflWASHCnXs0P06q
 
 # Script Properties yang perlu diisi di Google Apps Script
 
 API_CO_ID_KEY=isi_api_key_api_co_id_di_sini
-SPREADSHEET_ID=1zc_UbQqmy9aCt1CcKZSxRq276DHfrh46Hts36dGDT0c
-KTP_FOLDER_ID=1jhpp1WleiTwsxI0IltAkFylFGtFO-_AO
-SURAT_KUASA_FOLDER_ID=1mqqs3jVAooV00rQpnD9OIHT-tI4NvEaA
+SPREADSHEET_ID=1RfCck0Y3abUbTUFmFzvmJgOB7hFxRmCn8bp5GfXgn5o
+KTP_FOLDER_ID=1BJnMYEp9QnnMuyMQDaTA0BpzdQEt7Uex
+SURAT_KUASA_FOLDER_ID=1nhAAkf0gUBxGag3McWxn91YG_e9ktAAC
+KARTU_KELUARGA_FOLDER_ID=1KTRvR6vUvI6UNxl6xflWASHCnXs0P06q
 ALLOWED_ORIGINS=http://localhost:5173,https://egs-esagemilangsakti.github.io,https://form.ptesagemilangsakti.com
 
 # Tempat menaruh API key
@@ -43,6 +46,7 @@ API key dari API.CO.ID
    SPREADSHEET_ID
    KTP_FOLDER_ID
    SURAT_KUASA_FOLDER_ID
+   KARTU_KELUARGA_FOLDER_ID
    ALLOWED_ORIGINS
 6. Jalankan setup() di Apps Script.
 7. Deploy Apps Script sebagai Web App.

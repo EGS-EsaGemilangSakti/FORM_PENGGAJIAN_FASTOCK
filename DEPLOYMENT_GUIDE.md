@@ -11,7 +11,8 @@
 1. Buat folder `PAYROLL_UPLOADS`.
 2. Di dalamnya buat folder `KTP`.
 3. Di dalamnya buat folder `SURAT_KUASA`.
-4. Salin folder ID dari URL masing-masing folder.
+4. Di dalamnya buat folder `KARTU_KELUARGA`.
+5. Salin folder ID dari URL masing-masing folder.
 
 ## 3. Siapkan Apps Script
 
@@ -29,9 +30,10 @@ Masuk ke Project Settings, tambahkan:
 
 ```text
 API_CO_ID_KEY=api_key_api_co_id
-SPREADSHEET_ID=1zc_UbQqmy9aCt1CcKZSxRq276DHfrh46Hts36dGDT0c
-KTP_FOLDER_ID=1jhpp1WleiTwsxI0IltAkFylFGtFO-_AO
-SURAT_KUASA_FOLDER_ID=1mqqs3jVAooV00rQpnD9OIHT-tI4NvEaA
+SPREADSHEET_ID=1RfCck0Y3abUbTUFmFzvmJgOB7hFxRmCn8bp5GfXgn5o
+KTP_FOLDER_ID=1BJnMYEp9QnnMuyMQDaTA0BpzdQEt7Uex
+SURAT_KUASA_FOLDER_ID=1nhAAkf0gUBxGag3McWxn91YG_e9ktAAC
+KARTU_KELUARGA_FOLDER_ID=1KTRvR6vUvI6UNxl6xflWASHCnXs0P06q
 ALLOWED_ORIGINS=http://localhost:5173,https://egs-esagemilangsakti.github.io,https://form.ptesagemilangsakti.com
 ```
 

@@ -11,6 +11,10 @@ const HEADERS = [
   'NIK',
   'Tempat Lahir',
   'Tanggal Lahir',
+  'Gender',
+  'Status Perkawinan',
+  'Agama',
+  'PTKP',
   'Nomor Telepon',
   'Penempatan',
   'Status Karyawan',
@@ -26,6 +30,7 @@ const HEADERS = [
   'Validation Timestamp',
   'Status Kepemilikan Rekening',
   'KTP URL',
+  'Kartu Keluarga URL',
   'Surat Kuasa URL'
 ];
 const ALLOWED_FIELDS = [
@@ -47,6 +52,10 @@ const ALLOWED_FIELDS = [
   'birthPlace',
   'birthPlaceProvince',
   'birthDate',
+  'gender',
+  'maritalStatus',
+  'religion',
+  'ptkp',
   'phone',
   'placement',
   'employmentStatus',
@@ -59,10 +68,14 @@ const ALLOWED_FIELDS = [
   'formStartedAt',
   'bank'
 ];
-const PLACEMENTS = ['JNT CARGO CIREBON', 'JNT TGR', 'JNT SUNTER', 'JNT DRIVER PKU', 'JNT BTN', 'FASTRANS', 'MONDE', 'JNT SEMARANG', 'JNT TEGAL', 'JNT PATI', 'JNT EXPRESS MEDAN', 'JNT SMQ 05', 'JNT SMQ 99', 'OB HQ', 'SPRINTER JET JKT', 'GO TO BALI', 'CARGO BKI'];
+const PLACEMENTS = ['FASTOCK GUDANG A', 'FASTOCK GUDANG O', 'FASTOCK TAMBUN', 'FASTOCK KAMAL'];
 const EMPLOYMENT_STATUSES = ['Freelance', 'Kontrak'];
-const POSITIONS = ['Admin', 'Kordinator', 'Sorter', 'Driver', 'Kurir'];
+const POSITIONS = ['DW REQUEST', 'DW BULANAN', 'REGULER'];
 const OWNERSHIP_STATUSES = ['PRIBADI', 'ORANG LAIN'];
+const GENDERS = ['Laki-laki', 'Perempuan'];
+const MARITAL_STATUSES = ['Menikah', 'Belum Menikah', 'Cerai Hidup', 'Cerai Mati'];
+const RELIGIONS = ['Islam', 'Kristen', 'Protestan', 'Hindu', 'Buddha', 'Khonghucu'];
+const PTKP_CODES = ['tk0', 'k1', 'k2', 'k3', 'tk1', 'tk2', 'tk3'];
 
 function doGet() {
   try {
@@ -141,6 +154,7 @@ function handleSubmitPayroll(payload) {
 
   const submissionId = generateUUID();
   const ktpFile = uploadToDrive(payload.files && payload.files.ktp, 'ktp', submissionId);
+  const kartuKeluargaFile = uploadToDrive(payload.files && payload.files.familyCard, 'kartuKeluarga', submissionId);
   var suratKuasaFile = { url: '' };
 
   if (data.ownershipStatus === 'ORANG LAIN' && !(payload.files && payload.files.powerOfAttorney)) {
@@ -150,7 +164,7 @@ function handleSubmitPayroll(payload) {
     suratKuasaFile = uploadToDrive(payload.files.powerOfAttorney, 'suratKuasa', submissionId);
   }
 
-  saveToSpreadsheet(submissionId, data, backendValidation, ktpFile.url, suratKuasaFile.url);
+  saveToSpreadsheet(submissionId, data, backendValidation, ktpFile.url, kartuKeluargaFile.url, suratKuasaFile.url);
   logSubmission('SUCCESS', submissionId, 'Data berhasil disimpan');
 
   return {
@@ -177,6 +191,10 @@ function validatePayload(data) {
   if (!/^[A-Za-z .'\-()]+$/.test(data.birthPlaceProvince || '')) throw new Error('Provinsi tempat lahir tidak valid');
   if (!/^\d{2}-\d{2}-\d{4}$/.test(data.birthDate || '')) throw new Error('Tanggal lahir tidak valid');
   if (isFutureDdMmYyyy(data.birthDate)) throw new Error('Tanggal lahir tidak boleh masa depan');
+  if (GENDERS.indexOf(data.gender) === -1) throw new Error('Gender tidak valid');
+  if (MARITAL_STATUSES.indexOf(data.maritalStatus) === -1) throw new Error('Status perkawinan tidak valid');
+  if (RELIGIONS.indexOf(data.religion) === -1) throw new Error('Agama tidak valid');
+  if (PTKP_CODES.indexOf(data.ptkp) === -1) throw new Error('PTKP tidak valid');
   if (!validatePhone(data.phone)) throw new Error('Nomor telepon tidak valid');
   if (PLACEMENTS.indexOf(data.placement) === -1) throw new Error('Penempatan tidak valid');
   if (EMPLOYMENT_STATUSES.indexOf(data.employmentStatus) === -1) throw new Error('Status karyawan tidak valid');
@@ -206,6 +224,10 @@ function validatePayload(data) {
     birthPlace: sanitizeInput(data.birthPlace).toUpperCase(),
     birthPlaceProvince: sanitizeInput(data.birthPlaceProvince).toUpperCase(),
     birthDate: data.birthDate,
+    gender: data.gender,
+    maritalStatus: data.maritalStatus,
+    religion: data.religion,
+    ptkp: data.ptkp,
     phone: String(data.phone),
     placement: data.placement,
     employmentStatus: data.employmentStatus,
@@ -354,7 +376,7 @@ function uploadToDrive(filePayload, type, submissionId) {
   if (bytes.length > MAX_FILE_SIZE) throw new Error('Ukuran file melebihi 5MB');
 
   const extension = getExtension(filePayload.mimeType);
-  const folderId = type === 'ktp' ? KTP_FOLDER_ID : SURAT_KUASA_FOLDER_ID;
+  const folderId = type === 'ktp' ? KTP_FOLDER_ID : type === 'kartuKeluarga' ? KARTU_KELUARGA_FOLDER_ID : SURAT_KUASA_FOLDER_ID;
   const fileName = submissionId + '-' + type + extension;
   const blob = Utilities.newBlob(bytes, filePayload.mimeType, fileName);
   const createdFile = DriveApp.getFolderById(folderId).createFile(blob);
@@ -365,10 +387,26 @@ function uploadToDrive(filePayload, type, submissionId) {
   };
 }
 
-function saveToSpreadsheet(submissionId, data, validation, ktpUrl, suratKuasaUrl) {
-  const sheet = getSheet(SHEET_NAME);
+function saveToSpreadsheet(submissionId, data, validation, ktpUrl, kartuKeluargaUrl, suratKuasaUrl) {
+  const row = buildSubmissionRow(submissionId, data, validation, ktpUrl, kartuKeluargaUrl, suratKuasaUrl);
+  const mainSheet = getSheet(SHEET_NAME);
   createSpreadsheetHeaders();
-  sheet.appendRow([
+  mainSheet.appendRow(row);
+  applyDuplicateNikFormattingToSheet(mainSheet);
+
+  const placementSheet = getSheet(getPlacementSheetName(data.placement));
+  createSpreadsheetHeadersForSheet(placementSheet);
+  placementSheet.appendRow(row);
+  applyDuplicateNikFormattingToSheet(placementSheet);
+
+  const positionPlacementSheet = getSheet(getPositionPlacementSheetName(data.position, data.placement));
+  createSpreadsheetHeadersForSheet(positionPlacementSheet);
+  positionPlacementSheet.appendRow(row);
+  applyDuplicateNikFormattingToSheet(positionPlacementSheet);
+}
+
+function buildSubmissionRow(submissionId, data, validation, ktpUrl, kartuKeluargaUrl, suratKuasaUrl) {
+  return [
     submissionId,
     new Date(),
     data.email,
@@ -377,6 +415,10 @@ function saveToSpreadsheet(submissionId, data, validation, ktpUrl, suratKuasaUrl
     "'" + data.nik,
     data.birthPlace,
     data.birthDate,
+    data.gender,
+    data.maritalStatus,
+    data.religion,
+    data.ptkp,
     "'" + data.phone,
     data.placement,
     data.employmentStatus,
@@ -392,12 +434,33 @@ function saveToSpreadsheet(submissionId, data, validation, ktpUrl, suratKuasaUrl
     validation.validationTimestamp,
     data.ownershipStatus,
     ktpUrl,
+    kartuKeluargaUrl,
     suratKuasaUrl
-  ]);
+  ];
+}
+
+function getPlacementSheetName(placement) {
+  return String(placement || 'UNKNOWN')
+    .replace(/[\[\]\*\/\\\?:]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .substring(0, 100) || 'UNKNOWN';
+}
+
+function getPositionPlacementSheetName(position, placement) {
+  return String((position || 'UNKNOWN') + ' ' + (placement || 'UNKNOWN'))
+    .replace(/[\[\]\*\/\\\?:]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .substring(0, 100) || 'UNKNOWN';
 }
 
 function createSpreadsheetHeaders() {
   const sheet = getSheet(SHEET_NAME);
+  createSpreadsheetHeadersForSheet(sheet);
+}
+
+function createSpreadsheetHeadersForSheet(sheet) {
   if (sheet.getLastRow() === 0) {
     sheet.appendRow(HEADERS);
     return;
