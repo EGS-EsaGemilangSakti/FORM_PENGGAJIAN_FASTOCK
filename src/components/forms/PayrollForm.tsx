@@ -10,7 +10,7 @@ import powerOfAttorneyTemplateUrl from '../../assets/TAMPLATE_SURAT_KUASA.pdf';
 import { useSubmitPayroll } from '../../hooks/useSubmitPayroll';
 import { useValidateBank } from '../../hooks/useValidateBank';
 import { payrollSchema } from '../../schemas/payrollSchema';
-import type { PayrollFormValues } from '../../types/payroll';
+import type { ApiResponse, PayrollFormValues } from '../../types/payroll';
 import { toDisplayDate, nowIso } from '../../utils/formatters';
 import { sanitizeText } from '../../utils/sanitize';
 import { fileToBase64Payload } from '../../utils/validators';
@@ -286,10 +286,30 @@ function ValidationErrorModal({ messages, onClose }: { messages: string[]; onClo
   );
 }
 
+function RegistrationSuccessModal({ result, onClose }: { result: ApiResponse; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0f0f0f]/80 px-5 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="registration-success-title">
+      <div className="w-full max-w-md rounded-xl border border-[#f2ca50]/25 bg-[#201f1f] p-6 text-center shadow-[0_32px_64px_-12px_rgba(0,0,0,0.55)]">
+        <h2 id="registration-success-title" className="text-xl font-semibold text-white">Registrasi berhasil</h2>
+        <p className="mt-2 text-sm text-[#c9c5c2]">Simpan QR code ini untuk proses absensi.</p>
+        {result.qrCodeImageUrl ? <img src={result.qrCodeImageUrl} alt={`QR code ID ${result.submissionId}`} className="mx-auto mt-5 h-56 w-56 rounded-lg bg-white p-2" /> : null}
+        <p className="mt-4 break-all font-mono text-xs text-[#e5e2e1]">ID: {result.submissionId}</p>
+        {result.qrCodeDownloadUrl ? (
+          <a href={result.qrCodeDownloadUrl} target="_blank" rel="noreferrer" className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#f2ca50] px-5 text-sm font-bold text-[#3c2f00] transition hover:bg-[#ffd95c]">
+            <Download className="h-4 w-4" /> Simpan QR Code
+          </a>
+        ) : null}
+        <button type="button" onClick={onClose} className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-xl border border-white/15 px-5 text-sm font-semibold text-white transition hover:bg-white/5">Tutup</button>
+      </div>
+    </div>
+  );
+}
+
 export function PayrollForm() {
   const persistedDraft = useMemo(loadPersistedDraft, []);
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(persistedDraft.currentStep ?? 1);
   const [validationMessages, setValidationMessages] = useState<string[]>([]);
+  const [registrationResult, setRegistrationResult] = useState<ApiResponse | null>(null);
   const submitLock = useRef(false);
   const skipDraftPersistRef = useRef(false);
   const validateMutation = useValidateBank();
@@ -477,6 +497,8 @@ export function PayrollForm() {
       };
       const response = await submitMutation.mutateAsync(payload);
       if (!response.success) throw new Error(response.message);
+      if (!response.submissionId || !response.qrCodeImageUrl || !response.qrCodeDownloadUrl) throw new Error('QR code tidak tersedia pada respons server');
+      setRegistrationResult(response);
       toast.success(`${response.message}: ${response.submissionId}`);
       skipDraftPersistRef.current = true;
       reset();
@@ -502,6 +524,7 @@ export function PayrollForm() {
     <form onSubmit={handleSubmit(onSubmit, onInvalidSubmit)} className="space-y-10 px-5 pb-28 pt-6 sm:px-8" noValidate>
       {isSubmitLoading ? <SubmitLoadingOverlay /> : null}
       {validationMessages.length > 0 ? <ValidationErrorModal messages={validationMessages} onClose={() => setValidationMessages([])} /> : null}
+      {registrationResult ? <RegistrationSuccessModal result={registrationResult} onClose={() => setRegistrationResult(null)} /> : null}
       <input type="text" className="hidden" tabIndex={-1} autoComplete="off" {...register('website')} />
 
       <section className="space-y-8 text-center">

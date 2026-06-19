@@ -31,7 +31,9 @@ const HEADERS = [
   'Status Kepemilikan Rekening',
   'KTP URL',
   'Kartu Keluarga URL',
-  'Surat Kuasa URL'
+  'Surat Kuasa URL',
+  'QR Payload',
+  'QR Code URL'
 ];
 const ALLOWED_FIELDS = [
   'email',
@@ -153,23 +155,28 @@ function handleSubmitPayroll(payload) {
   }
 
   const submissionId = generateUUID();
+  if (data.ownershipStatus === 'ORANG LAIN' && !(payload.files && payload.files.powerOfAttorney)) {
+    throw new Error('Surat kuasa wajib diunggah');
+  }
+  const qrCode = generateQrCode(submissionId);
   const ktpFile = uploadToDrive(payload.files && payload.files.ktp, 'ktp', submissionId);
   const kartuKeluargaFile = uploadToDrive(payload.files && payload.files.familyCard, 'kartuKeluarga', submissionId);
   var suratKuasaFile = { url: '' };
 
-  if (data.ownershipStatus === 'ORANG LAIN' && !(payload.files && payload.files.powerOfAttorney)) {
-    throw new Error('Surat kuasa wajib diunggah');
-  }
   if (payload.files && payload.files.powerOfAttorney) {
     suratKuasaFile = uploadToDrive(payload.files.powerOfAttorney, 'suratKuasa', submissionId);
   }
 
-  saveToSpreadsheet(submissionId, data, backendValidation, ktpFile.url, kartuKeluargaFile.url, suratKuasaFile.url);
+  saveToSpreadsheet(submissionId, data, backendValidation, ktpFile.url, kartuKeluargaFile.url, suratKuasaFile.url, qrCode);
   logSubmission('SUCCESS', submissionId, 'Data berhasil disimpan');
 
   return {
     success: true,
     submissionId: submissionId,
+    qrPayload: qrCode.payload,
+    qrCodeUrl: qrCode.url,
+    qrCodeImageUrl: qrCode.imageUrl,
+    qrCodeDownloadUrl: qrCode.downloadUrl,
     message: 'Data berhasil disimpan'
   };
 }
@@ -349,6 +356,40 @@ function generateUUID() {
   return Utilities.getUuid();
 }
 
+function generateQrCode(submissionId) {
+  const payload = String(submissionId || '').trim();
+  if (!/^[0-9a-f-]{36}$/i.test(payload)) throw new Error('Submission ID untuk QR tidak valid');
+
+  const endpoint = 'https://quickchart.io/qr?size=400&format=png&ecLevel=M&margin=2&text=' + encodeURIComponent(payload);
+  const response = UrlFetchApp.fetch(endpoint, { method: 'get', muteHttpExceptions: true });
+  if (response.getResponseCode() < 200 || response.getResponseCode() >= 300) {
+    throw new Error('Gagal membuat QR code');
+  }
+
+  const blob = response.getBlob().setName(payload + '-qr.png');
+  if (blob.getContentType() !== 'image/png') throw new Error('Format QR code tidak valid');
+
+  const file = getQrFolder().createFile(blob);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+  return {
+    payload: payload,
+    url: file.getUrl(),
+    imageUrl: 'https://drive.google.com/uc?export=view&id=' + file.getId(),
+    downloadUrl: 'https://drive.google.com/uc?export=download&id=' + file.getId()
+  };
+}
+
+function getQrFolder() {
+  if (QR_FOLDER_ID) return DriveApp.getFolderById(QR_FOLDER_ID);
+
+  const parentFolders = DriveApp.getFolderById(KTP_FOLDER_ID).getParents();
+  if (!parentFolders.hasNext()) throw new Error('Folder induk QR code tidak ditemukan');
+  const parent = parentFolders.next();
+  const existingFolders = parent.getFoldersByName('QR_CODES');
+  return existingFolders.hasNext() ? existingFolders.next() : parent.createFolder('QR_CODES');
+}
+
 function verifyOrigin(origin) {
   if (!origin || ALLOWED_ORIGINS.indexOf(origin) === -1) {
     throw new Error('Origin tidak diizinkan');
@@ -387,8 +428,8 @@ function uploadToDrive(filePayload, type, submissionId) {
   };
 }
 
-function saveToSpreadsheet(submissionId, data, validation, ktpUrl, kartuKeluargaUrl, suratKuasaUrl) {
-  const row = buildSubmissionRow(submissionId, data, validation, ktpUrl, kartuKeluargaUrl, suratKuasaUrl);
+function saveToSpreadsheet(submissionId, data, validation, ktpUrl, kartuKeluargaUrl, suratKuasaUrl, qrCode) {
+  const row = buildSubmissionRow(submissionId, data, validation, ktpUrl, kartuKeluargaUrl, suratKuasaUrl, qrCode);
   const mainSheet = getSheet(SHEET_NAME);
   createSpreadsheetHeaders();
   mainSheet.appendRow(row);
@@ -405,7 +446,7 @@ function saveToSpreadsheet(submissionId, data, validation, ktpUrl, kartuKeluarga
   applyDuplicateNikFormattingToSheet(positionPlacementSheet);
 }
 
-function buildSubmissionRow(submissionId, data, validation, ktpUrl, kartuKeluargaUrl, suratKuasaUrl) {
+function buildSubmissionRow(submissionId, data, validation, ktpUrl, kartuKeluargaUrl, suratKuasaUrl, qrCode) {
   return [
     submissionId,
     new Date(),
@@ -435,7 +476,9 @@ function buildSubmissionRow(submissionId, data, validation, ktpUrl, kartuKeluarg
     data.ownershipStatus,
     ktpUrl,
     kartuKeluargaUrl,
-    suratKuasaUrl
+    suratKuasaUrl,
+    qrCode.payload,
+    qrCode.url
   ];
 }
 

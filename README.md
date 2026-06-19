@@ -95,6 +95,7 @@ API_CO_ID_KEY=api_key_api_co_id
 SPREADSHEET_ID=spreadsheet_id
 KTP_FOLDER_ID=folder_id_ktp
 SURAT_KUASA_FOLDER_ID=folder_id_surat_kuasa
+QR_FOLDER_ID=folder_id_qr_code
 ALLOWED_ORIGINS=http://localhost:5173,https://username.github.io
 ```
 
@@ -111,3 +112,5 @@ ALLOWED_ORIGINS=http://localhost:5173,https://username.github.io
 Frontend memakai React Hook Form, Zod, sanitasi input, validasi file, disable submit saat loading, pencegahan double submit, honeypot, dan dialog konfirmasi.
 
 Backend Apps Script melakukan validasi ulang seluruh field, reject unknown fields, origin whitelist berbasis payload origin, rate limiting CacheService, honeypot, UUID submission, timestamp validation, MIME validation, file size validation, audit logging, validasi rekening ulang ke API.CO.ID, upload Drive, dan penyimpanan Spreadsheet.
+
+Setelah registrasi berhasil, backend membuat QR PNG yang hanya berisi `submissionId` UUID (tanpa NIK atau data pribadi). Respons `submitPayroll` menyediakan `submissionId`, `qrPayload`, `qrCodeUrl`, `qrCodeImageUrl`, dan `qrCodeDownloadUrl` untuk integrasi dengan sistem absensi. Jika `QR_FOLDER_ID` tidak diisi, fungsi `setup()` otomatis membuat folder `QR_CODES` di folder induk KTP.

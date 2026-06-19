@@ -87,6 +87,10 @@ export interface ApiResponse {
   success: boolean;
   message: string;
   submissionId?: string;
+  qrPayload?: string;
+  qrCodeUrl?: string;
+  qrCodeImageUrl?: string;
+  qrCodeDownloadUrl?: string;
 }
 
 export interface BankValidationRequest {
