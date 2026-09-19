@@ -91,6 +91,7 @@ export interface ApiResponse {
   qrCodeUrl?: string;
   qrCodeImageUrl?: string;
   qrCodeDownloadUrl?: string;
+  qrCodeDataUrl?: string;
 }
 
 export interface BankValidationRequest {
